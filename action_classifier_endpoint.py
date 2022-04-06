@@ -42,7 +42,7 @@ async def get_model(model_name: ModelName):
 @app.post("/api/v1/public/upload-video")
 async def uploadVideo(file: UploadFile = File(...)):
     received_path = './video_received/'
-    if(not os.path.exists(received_path)):
+    if not os.path.exists(received_path):
         os.mkdir(received_path)
     with open(received_path + '{}'.format(file.filename), 'wb') as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -60,12 +60,18 @@ def getVideo(path):
 
 @app.get("/api/v1/public/classified-videos")
 def getListOfClassifiedVideos():
+    classified_path = './video_classified/'
+    if not os.path.exists(classified_path):
+        os.mkdir(classified_path)
     filenames = next(walk('video_classified'), (None, None, []))[2]
     return {"Classified Videos": filenames}
 
 
 @app.get("/api/v1/public/received-videos")
 def getListOfReceivedVideos():
+    received_path = './video_received/'
+    if not os.path.exists(received_path):
+        os.mkdir(received_path)
     filenames = next(walk('video_received'), (None, None, []))[2]
     return {"Received Videos": filenames}
 
