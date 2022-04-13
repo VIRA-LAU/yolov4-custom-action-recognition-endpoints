@@ -26,7 +26,7 @@ conda env create -f conda-cpu.yml
 conda activate yolov4-cpu
 
 # Tensorflow GPU
-conda env create -f conda-gpu.yml
+conda env create -f action-yolov4-gpu.yml
 conda activate yolov4-gpu
 ```
 

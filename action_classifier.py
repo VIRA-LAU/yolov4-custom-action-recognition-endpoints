@@ -17,9 +17,10 @@ from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
 
 class Process:
-    def __init__(self, path, model):
+    def __init__(self, path, model, videoId):
         self.path = path
         self.model = model
+        self.videoId = videoId
 
     def detect(self):
         # load configuration for object detector
@@ -31,7 +32,7 @@ class Process:
         XYSCALE = cfg.YOLO.XYSCALE
         NUM_CLASS = len(utils.read_class_names(cfg.YOLO.CLASSES))
         input_size = 416
-        video_path = './video_received/{}'.format(self.path)
+        video_path = '../../fyp-interface/src/assets/raw-video/{}'.format(self.path)
         # get video name by using split method
         video_name = video_path.split('/')[-1]
         video_name = video_name.split('.')[0]
@@ -51,7 +52,7 @@ class Process:
         height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = int(vid.get(cv2.CAP_PROP_FPS))
         codec = cv2.VideoWriter_fourcc(*'MP4V')
-        output_path = './video_classified/{}'.format(self.path)
+        output_path = '../../fyp-interface/src/assets/classified-video/{}'.format(self.path)
         out = cv2.VideoWriter(output_path, codec, fps, (width, height))
 
         frame_num = 0
@@ -105,6 +106,10 @@ class Process:
             # allowed_classes = ['person']
 
             image = utils.draw_bbox(frame, pred_bbox, True)
+
+            send_request(pred_bbox,allowed_classes,frame_num, self.videoId)
+
+
 
             fps = 1.0 / (time.time() - start_time)
             print("FPS: %.2f" % fps)

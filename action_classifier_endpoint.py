@@ -1,6 +1,7 @@
 import shutil
 from enum import Enum
 import os
+import requests
 from fastapi import FastAPI, File, UploadFile
 from starlette.responses import FileResponse
 import tensorflow as tf
@@ -13,7 +14,7 @@ saved_model_loaded = tf.saved_model.load('./checkpoints/yolov4-416', tags=[tag_c
 
 app = FastAPI()
 
-
+api_url = "https://stats-service-fyp-vira.herokuapp.com/api/v1/"
 # uvicorn main:app --reload
 
 class ModelName(str, Enum):
@@ -69,7 +70,7 @@ def getListOfClassifiedVideos():
 
 @app.get("/api/v1/public/received-videos")
 def getListOfReceivedVideos():
-    received_path = './video_received/'
+    received_path = '../../fyp-interface/src/assets/raw-video/'
     if not os.path.exists(received_path):
         os.mkdir(received_path)
     filenames = next(walk('video_received'), (None, None, []))[2]
@@ -78,7 +79,13 @@ def getListOfReceivedVideos():
 
 @app.get("/api/v1/public/classify-video/{path}")
 def ClassifyVideo(path):
-    result = Process(path, saved_model_loaded);
+    request = {
+        "videoName": path,
+        "videoLocation": "LAU Court"
+    }
+    response = requests.get(api_url + 'videos/{}'.format(path))
+    videoId = response.json()['videoId']
+    result = Process(path, saved_model_loaded,videoId);
     result.detect()
     return {"Download From": "http://localhost:8000/getVideo/{}".format(path)}
 
