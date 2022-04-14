@@ -45,6 +45,14 @@ async def uploadVideo(file: UploadFile = File(...)):
     received_path = './video_received/'
     if not os.path.exists(received_path):
         os.mkdir(received_path)
+
+
+    # save the video in google drive and get a url --> https://jkaskddhaskd/video1
+    # service -----> https://jkaskddhaskd/video1
+    # getURlLinks() ---> {
+     # ur
+
+    # }
     with open(received_path + '{}'.format(file.filename), 'wb') as buffer:
         shutil.copyfileobj(file.file, buffer)
 
