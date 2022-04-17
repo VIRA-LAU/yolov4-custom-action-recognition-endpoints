@@ -107,7 +107,7 @@ def ClassifyVideo(path):
     print('Classified')
 
     blob = bucket.blob('classified_videos/' + path)
-    blob.upload_from_filename(video_classified_dir + path)
+    blob.upload_from_filename(video_classified_dir + path, timeout=200)
     blob.make_public()
     print("Firebase URL:", blob.public_url)
 
@@ -116,4 +116,4 @@ def ClassifyVideo(path):
     }
     requests.put(api_url + 'videos/update/{}'.format(videoId), json=classified_url)
 
-    return {'Success'}
+    return {'url': blob.public_url}
