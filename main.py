@@ -1,7 +1,8 @@
 import shutil
+import subprocess
 from enum import Enum
 import os
-from paths import video_classified_dir, video_received_dir
+from paths import video_classified_dir, video_received_dir, api_url
 import firebase_admin
 from firebase_admin import credentials, storage
 import requests
@@ -22,7 +23,6 @@ bucket = storage.bucket()
 
 app = FastAPI()
 
-api_url = "https://stats-service-fyp-vira.herokuapp.com/api/v1/"
 
 
 # uvicorn main:app --reload
@@ -56,12 +56,6 @@ async def uploadVideo(file: UploadFile = File(...)):
     if not os.path.exists(video_received_dir):
         os.mkdir(video_received_dir)
 
-    # save the video in google drive and get a url --> https://jkaskddhaskd/video1
-    # service -----> https://jkaskddhaskd/video1
-    # getURlLinks() ---> {
-    # ur
-
-    # }
     with open(received_path + '{}'.format(file.filename), 'wb') as buffer:
         shutil.copyfileobj(file.file, buffer)
 
@@ -105,6 +99,9 @@ def ClassifyVideo(path):
     result = Process(path, saved_model_loaded, videoId);
     result.detect()
     print('Classified')
+    subprocess.call(['ffmpeg', "-hwaccel", "cuda", '-i', video_classified_dir + os.path.splitext(path)[0] + ".avi",
+                     video_classified_dir + os.path.splitext(path)[0] + ".mp4"])
+    os.remove(video_classified_dir + os.path.splitext(path)[0] + ".avi")
 
     blob = bucket.blob('classified_videos/' + path)
     blob.upload_from_filename(video_classified_dir + path, timeout=200)
@@ -115,5 +112,74 @@ def ClassifyVideo(path):
         "videoClassifyUrl": blob.public_url
     }
     requests.put(api_url + 'videos/update/{}'.format(videoId), json=classified_url)
-
     return {'url': blob.public_url}
+
+
+@app.get("/api/v1/public/getVideoUrl/{name}")
+def getVideoUrl(name):
+    try:
+        video = requests.get(api_url + 'videos/{}'.format(name)).json()
+        print(video['videoRawUrl'])
+        return {'rawUrl': video['videoRawUrl']}
+    except:
+        return {"error": "File not found!"}
+
+@app.get("/api/v1/public/classified-videosUrl")
+def getListOfClassifiedVideosUrl():
+    videos = requests.get(api_url + 'videos').json()
+    to_return = []
+    for video in videos:
+        if video['videoClassifyUrl']:
+            to_return.append(video['videoClassifyUrl'])
+    return {'classifiedVideos': to_return}
+
+@app.get("/api/v1/public/received-videosUrl")
+def getListOfReceivedVideosUrl():
+    videos = requests.get(api_url + 'videos').json()
+    to_return = []
+    for video in videos:
+        to_return.append(video['videoRawUrl'])
+    return {'videosReceived': to_return}
+
+@app.get("/api/v1/public/videosUrl")
+def getListOfAllVideoStatusUrl():
+    videos = requests.get(api_url + 'videos').json()
+    DetectedAndTracked = []
+    RawVideos = []
+    Classified = []
+    for video in videos:
+        RawVideos.append(video['videoRawUrl'])
+        if video['videoDetectUrl']:
+            DetectedAndTracked.append(video['videoDetectUrl'])
+        if video['videoClassifyUrl']:
+            Classified.append(video['videoClassifyUrl'])
+    listOfVideos = {
+        "raw-videos": RawVideos,
+        "detected-and-tracked": DetectedAndTracked,
+        "classified": Classified
+    }
+    return listOfVideos
+
+@app.get("/api/v1/public/classify-videoUrl/{videoName}")
+async def ClassifyVideoUrl(videoName):
+    try:
+        response = requests.get(api_url + 'videos/{}'.format(videoName))
+    except:
+        return {"error": "File not found!"}
+    videoId = response.json()['videoId']
+    video_url = response.json()['videoRawUrl']
+    result = Process(videoName, saved_model_loaded, videoId);
+    result.detect()
+    print('Classified')
+
+    blob = bucket.blob('classified_videos/' + videoName)
+    blob.upload_from_filename(video_classified_dir + videoName, timeout=10000)
+    blob.make_public()
+    print("Firebase URL:", blob.public_url)
+
+    classified_url = {
+        "videoClassifyUrl": blob.public_url
+    }
+    requests.put(api_url + 'videos/update/{}'.format(videoId), json=classified_url)
+    return {'url': blob.public_url}
+

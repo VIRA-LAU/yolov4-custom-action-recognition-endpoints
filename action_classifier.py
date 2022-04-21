@@ -22,6 +22,8 @@ from tensorflow.compat.v1 import InteractiveSession
 
 class Process:
     def __init__(self, path, model, videoId):
+        response = requests.get(api_url + 'videos/{}'.format(path))
+        self.video_url = response.json()['videoRawUrl']
         self.path = path
         self.model = model
         self.videoId = videoId
@@ -43,11 +45,8 @@ class Process:
 
         infer = self.model.signatures['serving_default']
 
-        # begin video capture
-        try:
-            vid = cv2.VideoCapture(int(video_path))
-        except:
-            vid = cv2.VideoCapture(video_path)
+
+        vid = cv2.VideoCapture(self.video_url)
 
         out = None
 
@@ -55,8 +54,9 @@ class Process:
         width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = int(vid.get(cv2.CAP_PROP_FPS))
-        codec = cv2.VideoWriter_fourcc(*'MP4V')
-        output_path = video_classified_dir + self.path
+        codec = cv2.VideoWriter_fourcc(*'H264')
+        # output_path = video_classified_dir + self.path
+        output_path = video_classified_dir + os.path.splitext(self.path)[0] + ".avi"
         out = cv2.VideoWriter(output_path, codec, fps, (width, height))
 
         frame_num = 0
