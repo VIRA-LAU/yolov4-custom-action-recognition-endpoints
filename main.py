@@ -2,6 +2,9 @@ import shutil
 import subprocess
 from enum import Enum
 import os
+
+from starlette.middleware.cors import CORSMiddleware
+
 from paths import video_classified_dir, video_received_dir, api_url
 import firebase_admin
 from firebase_admin import credentials, storage
@@ -23,7 +26,18 @@ bucket = storage.bucket()
 
 app = FastAPI()
 
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+]
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # uvicorn main:app --reload
 
